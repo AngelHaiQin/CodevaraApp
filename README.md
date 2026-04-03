@@ -1,24 +1,16 @@
-# 🚀 Codevara - Học Code Việt Nam 🇻🇳
+# 🚀 Codevara - Học Code Không AI
 
-🔗 Figma Design:  
-https://www.figma.com/make/CDpAlP21rwNL9ZTKeGydhO/Codevara-AI?t=DjBGQ1rH4IfUBsim-1
+## ✨ Demo App
+| Home | Code | Quiz | Nhóm | Cộng Đồng |
+|---|---|---|---|---|
+| ![Home](screenshots/home_screen.png) | ![Code](screenshots/code_screen.png) | ![Quiz](screenshots/quiz_screen.png) | ![Nhom](screenshots/nhom_screen.png) | ![CongDong](screenshots/cong_dong_screen.png) |
 
----
+## 🎮 Tính năng:
+- **Dán Code** → AI check Python/JS/SQL
+- **Quiz Game** → 3 câu luyện tập
+- **Nhóm Lớp** → CNTT1/2 + Web21 + Nộp bài
+- **Cộng Đồng** → Posts + Like + Đăng code
 
-## ✨ Features
-
-| Tính năng | Trạng thái |
-|----------|-----------|
-| Nhận 100+ ngôn ngữ | ✅ Hoàn thành |
-| Check AI code | 🔄 Ngày 2 |
-| Quiz game | 🔄 Ngày 3 |
-| Nhóm lớp BT | 🔄 Ngày 4 |
-| Cộng đồng | 🔄 Ngày 5 |
-
----
-
-## 🚀 Quick Start
-
-```bash
+## 🚀 Chạy:
 flutter pub get
 flutter run -d chrome
