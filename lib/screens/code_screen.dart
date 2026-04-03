@@ -88,24 +88,61 @@ class _CodeScreenState extends State<CodeScreen> {
     );
   }
 
-  void detectLanguage() {
-    String code = _codeController.text.trim();
-    setState(() {
-      if (code.contains('function') || code.contains('console.log')) {
-        detectedLang = 'JavaScript';
-      } else if (code.contains('print(') || code.contains('def ')) {
-        detectedLang = 'Python';
-      } else if (code.contains('int main') || code.contains('#include')) {
-        detectedLang = 'C++';
-      } else {
-        detectedLang = 'Không nhận diện';
-      }
-    });
+void detectLanguage() {
+  String code = _codeController.text.trim().toLowerCase();
+  
+  if (code.isEmpty) {
+    setState(() => detectedLang = 'Dán code trước nhé! 😊');
+    return;
   }
 
-  void checkAI() {
-    setState(() {
-      aiScore = _codeController.text.length > 50 ? 'Sạch 98% ✓' : 'Cần code dài hơn';
-    });
+  // 10 ngôn ngữ phổ biến + emoji
+  if (code.contains('function') || code.contains('console.log') || code.contains('document.')) {
+    detectedLang = 'JavaScript 🟡';
+  } else if (code.contains('print(') || code.contains('def ') || code.contains('import ')) {
+    detectedLang = 'Python 🐍';
+  } else if (code.contains('int main') || code.contains('#include')) {
+    detectedLang = 'C/C++ ⚙️';
+  } else if (code.contains('public class') || code.contains('system.out')) {
+    detectedLang = 'Java ☕';
+  } else if (code.contains('<html') || code.contains('<!doctype')) {
+    detectedLang = 'HTML/CSS 🌐';
+  } else if (code.contains('select') && code.contains('from')) {
+    detectedLang = 'SQL 🗄️';
+  } else if (code.contains('let ') || code.contains('const ')) {
+    detectedLang = 'TypeScript 🔵';
+  } else if (code.contains('fn main') || code.contains('rust')) {
+    detectedLang = 'Rust 🦀';
+  } else {
+    detectedLang = 'Code hay! 100+ ngôn ngữ khác 🤖';
   }
+  
+  setState(() {});
+}
+
+void checkAI() async {
+  setState(() => aiScore = 'Codevara đang check... 🔍');
+  
+  // Delay 2 giây (như API thật)
+  await Future.delayed(Duration(seconds: 2));
+  
+  String code = _codeController.text.trim();
+  if (code.length < 30) {
+    setState(() => aiScore = '⚠️ Code quá ngắn, cần >30 ký tự');
+    return;
+  }
+  
+  // Fake AI score thông minh
+  int fakeScore = ((code.length * 0.8 + 15) % 85 + 15).toInt();
+  
+  setState(() {
+    if (fakeScore > 75) {
+      aiScore = '⚠️ AI detected ${fakeScore}% 🤖';
+    } else if (fakeScore > 40) {
+      aiScore = '⚡ Có thể AI hỗ trợ ${fakeScore}%';
+    } else {
+      aiScore = '✅ Code tự viết ${100-fakeScore}% 🥇';
+    }
+  });
+}
 }
