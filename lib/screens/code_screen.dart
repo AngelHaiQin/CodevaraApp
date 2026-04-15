@@ -30,8 +30,9 @@ class _CodeScreenState extends State<CodeScreen> {
   Timer? _pasteResetTimer;
 
   // --- Config: chỉ 2 trạng thái (AI hoặc Viết tay) ---
-  // Nếu muốn AI khó hơn => đổi 60 hoặc 70.
-  static const int _aiThreshold = 60;
+  // NOTE: để "bắt AI" mạnh hơn cho code ngắn (không cần comment),
+  // ta dùng ngưỡng thấp hơn + thêm rule mạnh cho JS array methods.
+  static const int _aiThreshold = 45;
 
   @override
   void initState() {
@@ -357,8 +358,9 @@ class _CodeScreenState extends State<CodeScreen> {
     setState(() => detectedLang = lang);
   }
 
-  /// ✅ Final: chỉ 2 trạng thái (AI hoặc Viết tay), không hiện "Không rõ", không hiện lý do.
-  /// Không phụ thuộc #, dựa trên: paste + cấu trúc code + naming + chain + type hints.
+  /// ✅ Check AI (ép ra AI hoặc Viết tay)
+  /// - Không cần comment
+  /// - Bắt AI mạnh hơn cho code JS ngắn (map/filter/reduce / arrow / const pattern)
   Future<void> checkAI() async {
     if (_checkingAI) return;
 
@@ -368,7 +370,7 @@ class _CodeScreenState extends State<CodeScreen> {
     });
 
     try {
-      await Future.delayed(const Duration(milliseconds: 350));
+      await Future.delayed(const Duration(milliseconds: 250));
 
       final code = _codeController.text.trim();
       if (code.isEmpty) {
@@ -381,38 +383,47 @@ class _CodeScreenState extends State<CodeScreen> {
 
       double score = 0;
 
-      // 1) Paste boost (mạnh)
+      // 1) Paste boost (mạnh nhất)
       score += _pasteBoost; // 0..40
 
-      // 2) Functional chain map/filter/reduce
-      final chainCount = RegExp(r'\.\s*(map|filter|reduce)\s*\(', caseSensitive: false).allMatches(code).length;
-      if (chainCount >= 3) score += 22;
-      else if (chainCount == 2) score += 14;
-      else if (chainCount == 1) score += 6;
+      // 2) Array methods (JS/TS) - tăng điểm ngay cả khi chỉ có 1 map
+      final arrayMethodCount = RegExp(
+        r'\.\s*(map|filter|reduce|forEach|find|some|every|flatMap)\s*\(',
+        caseSensitive: false,
+      ).allMatches(code).length;
+      if (arrayMethodCount >= 3) score += 22;
+      else if (arrayMethodCount == 2) score += 16;
+      else if (arrayMethodCount == 1) score += 12; // ✅ quan trọng: 1 map cũng cộng khá
 
-      // 3) Arrow functions
+      // 3) Functional chain map/filter/reduce (tính riêng)
+      final chainCount = RegExp(r'\.\s*(map|filter|reduce)\s*\(', caseSensitive: false).allMatches(code).length;
+      if (chainCount >= 3) score += 10;
+      else if (chainCount == 2) score += 6;
+
+      // 4) Arrow functions
       final arrowCount = RegExp(r'=>').allMatches(code).length;
       if (arrowCount >= 2) score += 10;
-      else if (arrowCount == 1) score += 4;
+      else if (arrowCount == 1) score += 6; // ✅ 1 arrow cũng cộng
 
-      // 4) Nhiều khai báo biến
+      // 5) Nhiều khai báo biến (const/final/let)
       final declCount =
           RegExp(r'^\s*(const|final|let)\s+\w+\s*=', multiLine: true, caseSensitive: false).allMatches(code).length;
       if (declCount >= 4) score += 12;
-      else if (declCount >= 2) score += 6;
+      else if (declCount >= 2) score += 8;
+      else if (declCount == 1) score += 3;
 
-      // 5) Tên biến "sách vở"
-      if (RegExp(r'\b(accumulator|inputArray|resultArray|payload|sanitiz|normalize|transform|parameter)\b',
+      // 6) Tên biến "sách vở"
+      if (RegExp(r'\b(accumulator|inputArray|resultArray|payload|sanitize|sanitiz|normalize|transform|parameter)\b',
               caseSensitive: false)
           .hasMatch(code)) {
         score += 12;
       }
 
-      // 6) Type hints
-      if (RegExp(r'\b->\s*\w+', multiLine: true).hasMatch(code)) score += 10;
-      if (RegExp(r'\b:\s*(int|str|bool|float|list|dict)\b', caseSensitive: false).hasMatch(code)) score += 8;
+      // 7) Type hints (Python)
+      if (RegExp(r'\b->\s*\w+', multiLine: true).hasMatch(code)) score += 14;
+      if (RegExp(r'\b:\s*(int|str|bool|float|list|dict)\b', caseSensitive: false).hasMatch(code)) score += 10;
 
-      // 7) Comment/docstring (nhẹ, không phụ thuộc)
+      // 8) Comment/docstring (nhẹ)
       final commentLines = lines.where((l) {
         final t = l.trimLeft();
         return t.startsWith('//') ||
@@ -422,23 +433,23 @@ class _CodeScreenState extends State<CodeScreen> {
             t.startsWith('"""') ||
             t.startsWith("'''");
       }).length;
-      if (commentLines >= 4) score += 8;
-      else if (commentLines >= 2) score += 4;
+      if (commentLines >= 4) score += 6;
+      else if (commentLines >= 2) score += 3;
 
-      // 8) Keywords (nhẹ)
+      // 9) Keywords (nhẹ)
       const keywords = ['expected', 'edge case', 'optimize', 'sanity check', 'verify', 'example'];
       for (final k in keywords) {
-        if (lower.contains(k)) score += 4;
+        if (lower.contains(k)) score += 3;
       }
 
-      // 9) Viết tay: lỗi syntax phổ biến -> trừ
-      if (_looksLikeHandWrittenMistake(code)) score -= 20;
+      // 10) Viết tay: lỗi syntax phổ biến -> trừ (mạnh)
+      if (_looksLikeHandWrittenMistake(code)) score -= 25;
 
       score = score.clamp(0, 100);
 
       // Ép 2 mức
       final isAi = score >= _aiThreshold;
-      final verdict = isAi ? '⚠️ Nghi AI cao' : '✅ Viết tay';
+      final verdict = isAi ? '⚠️ AI' : '✅ Viết tay';
 
       final aiPercent = score.round();
       final humanPercent = (100 - aiPercent).clamp(0, 100);
@@ -480,6 +491,7 @@ class _CodeScreenState extends State<CodeScreen> {
     return false;
   }
 
+  // --- giữ nguyên các hàm phân tích lỗi/sửa ---
   Future<void> _analyzeAndFix() async {
     final code = _codeController.text;
     if (code.trim().isEmpty) {
