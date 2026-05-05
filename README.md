@@ -12,5 +12,7 @@
 - **Cộng Đồng** → Posts + Like + Đăng code
 
 ## 🚀 Chạy:
+```
 flutter pub get
 flutter run -d chrome
+```
