@@ -2,23 +2,39 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Để demo quiz custom gán ngoài, có thể dùng class trung gian nếu muốn.
+class SharedQuizData {
+  static List<QuizQuestion> codeQuizzes = [];
+}
+
 typedef QuizCompleteCallback = void Function(String topic, int score, int total);
 
-class QuizScreen extends StatefulWidget {
-  QuizScreen({super.key});
+class QuizQuestion {
+  final String question;
+  final String code;
+  final List<String> options;
+  final int correct;
 
+  const QuizQuestion({
+    required this.question,
+    required this.code,
+    required this.options,
+    required this.correct,
+  });
+}
+
+class QuizScreen extends StatefulWidget {
+  const QuizScreen({super.key});
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-/// ✅ Đây là màn MENU (2 mục: chọn ngôn ngữ + gần đây)
 class _QuizScreenState extends State<QuizScreen> {
   static const _bg = Color(0xFF0F0F23);
   static const _card = Color(0xFF1E1E2E);
   static const _primary = Color(0xFF6366F1);
 
   final List<String> _topics = const ['JavaScript', 'Python', 'SQL'];
-
   List<QuizHistoryItem> _recent = [];
   bool _loading = true;
 
@@ -34,7 +50,6 @@ class _QuizScreenState extends State<QuizScreen> {
     final items = raw
         .map((e) => QuizHistoryItem.fromJson(jsonDecode(e) as Map<String, dynamic>))
         .toList();
-
     if (!mounted) return;
     setState(() {
       _recent = items;
@@ -50,8 +65,6 @@ class _QuizScreenState extends State<QuizScreen> {
       total: total,
       completedAt: DateTime.now(),
     );
-
-    // đưa mới nhất lên đầu, bỏ trùng topic, giới hạn 10
     final updated = <QuizHistoryItem>[
       item,
       ..._recent.where((x) => x.topic != topic),
@@ -66,12 +79,13 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() => _recent = updated);
   }
 
-  Future<void> _openQuiz(String topic) async {
+  Future<void> _openQuiz(String topic, {List<QuizQuestion>? customQuestions}) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => QuizPlayScreen(
           topic: topic,
+          customQuestions: customQuestions,
           onQuizComplete: (t, s, total) => _saveToRecent(t, s, total),
         ),
       ),
@@ -80,6 +94,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasCustom = SharedQuizData.codeQuizzes.isNotEmpty;
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -100,7 +115,12 @@ class _QuizScreenState extends State<QuizScreen> {
                   'Quiz theo ngôn ngữ',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                if (hasCustom)
+                  _TopicTile(
+                    title: "Quiz từ code gần nhất",
+                    onTap: () => _openQuiz("Quiz từ code", customQuestions: SharedQuizData.codeQuizzes),
+                  ),
                 ..._topics.map((topic) => _TopicTile(
                       title: topic,
                       onTap: () => _openQuiz(topic),
@@ -202,14 +222,15 @@ class _TopicTile extends StatelessWidget {
   }
 }
 
-/// ✅ Màn làm bài + kết quả
 class QuizPlayScreen extends StatefulWidget {
   final String topic;
+  final List<QuizQuestion>? customQuestions;
   final QuizCompleteCallback? onQuizComplete;
 
   const QuizPlayScreen({
     super.key,
     required this.topic,
+    this.customQuestions,
     this.onQuizComplete,
   });
 
@@ -217,8 +238,7 @@ class QuizPlayScreen extends StatefulWidget {
   State<QuizPlayScreen> createState() => _QuizPlayScreenState();
 }
 
-class _QuizPlayScreenState extends State<QuizPlayScreen>
-    with SingleTickerProviderStateMixin {
+class _QuizPlayScreenState extends State<QuizPlayScreen> with SingleTickerProviderStateMixin {
   static const _bg = Color(0xFF0F0F23);
   static const _card = Color(0xFF1E1E2E);
   static const _primary = Color(0xFF6366F1);
@@ -241,17 +261,19 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
   @override
   void initState() {
     super.initState();
-    questions = _getQuestionsForTopic(widget.topic);
+    if (widget.customQuestions != null && widget.customQuestions!.isNotEmpty) {
+      questions = widget.customQuestions!;
+    } else {
+      questions = _getQuestionsForTopic(widget.topic);
+    }
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
-
     _animationController.forward();
   }
 
@@ -279,7 +301,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
             correct: 1,
           ),
         ];
-
       case 'Python':
         return const [
           QuizQuestion(
@@ -295,7 +316,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
             correct: 1,
           ),
         ];
-
       case 'SQL':
         return const [
           QuizQuestion(
@@ -311,7 +331,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
             correct: 0,
           ),
         ];
-
       default:
         return const [
           QuizQuestion(
@@ -326,7 +345,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
 
   void selectAnswer(int index) {
     if (showResult || quizCompleted) return;
-
     setState(() => showResult = true);
 
     if (index == questions[currentQuestion].correct) {
@@ -446,20 +464,21 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white, height: 1.4),
           ),
           const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+          if (question.code.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: SelectableText(
+                question.code,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 15, color: Color(0xFFE4E4E7), height: 1.5),
+              ),
             ),
-            child: SelectableText(
-              question.code,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 15, color: Color(0xFFE4E4E7), height: 1.5),
-            ),
-          ),
-          const SizedBox(height: 30),
+          if (question.code.isNotEmpty) const SizedBox(height: 16),
           Expanded(
             child: ListView.builder(
               itemCount: question.options.length,
@@ -545,7 +564,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
           const SizedBox(height: 16),
           Text(resultText, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 20),
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -556,15 +574,14 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
             ),
             child: Column(
               children: [
-                _scoreRow('Ngôn ngữ', widget.topic),
+                Text(widget.topic, style: const TextStyle(fontSize: 18, color: Colors.white)),
                 const Divider(color: Color(0x22FFFFFF)),
-                _scoreRow('Điểm', '$score / $total'),
+                Text('Điểm: $score / $total', style: const TextStyle(fontSize: 18, color: Colors.white)),
                 const Divider(color: Color(0x22FFFFFF)),
-                _scoreRow('Phần trăm', '$percentage%'),
+                Text('Phần trăm: $percentage%', style: const TextStyle(fontSize: 18, color: Colors.white)),
               ],
             ),
           ),
-
           const SizedBox(height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -593,29 +610,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
       ),
     );
   }
-
-  Widget _scoreRow(String left, String right) {
-    return Row(
-      children: [
-        Expanded(child: Text(left, style: const TextStyle(color: Colors.white70, fontSize: 14))),
-        Text(right, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-      ],
-    );
-  }
-}
-
-class QuizQuestion {
-  final String question;
-  final String code;
-  final List<String> options;
-  final int correct;
-
-  const QuizQuestion({
-    required this.question,
-    required this.code,
-    required this.options,
-    required this.correct,
-  });
 }
 
 class QuizHistoryItem {

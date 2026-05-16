@@ -2,87 +2,231 @@ import 'package:flutter/material.dart';
 import 'code_screen.dart';
 import 'quiz_screen.dart';
 import 'nhom_screen.dart';
-import 'cong_dong_screen.dart';  // ✅ Cộng Đồng
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  static const Color bg1 = Color(0xFF6366F1);
+  static const Color bg2 = Color(0xFFA78BFA);
+  static const Color bg3 = Color(0xFF06B6D4);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFFA78BFA), Color(0xFF06B6D4)],
+            colors: [bg1, bg2, bg3],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: SafeArea(
-          child: Column(children: [
-            // Logo (giữ nguyên)
-            Padding(
-              padding: EdgeInsets.only(top: 60, bottom: 80),
-              child: Column(
-                children: [
-                  Text('CODEVARA', style: TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 4)),
-                  SizedBox(height: 8),
-                  Text('Học Code Không AI', style: TextStyle(fontSize: 20, color: Colors.white70)),
-                ],
-              ),
-            ),
-            
-            // 4 Icon Figma
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            children: [
+              // ===== HEADER =====
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: 40,
+                  bottom: 30,
+                ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Row 1
-                    Row(children: [
-                      Expanded(child: _buildIconButton(Icons.code, 'Dán Code', () => Navigator.push(context, MaterialPageRoute(builder: (_) => CodeScreen())), Colors.green)),
-                      SizedBox(width: 20),
-                      Expanded(child: _buildIconButton(Icons.quiz, 'Quiz Game', () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizScreen())), Colors.orange)),
-                    ]),
-                    SizedBox(height: 30),
-                    
-                    // Row 2 ✅ NHÓM + CỘNG ĐỒNG
-                    Row(children: [
-                      Expanded(child: _buildIconButton(Icons.group, 'Nhóm Lớp', () => Navigator.push(context, MaterialPageRoute(builder: (_) => NhomScreen())), Colors.purple)),
-                      SizedBox(width: 20),
-                      Expanded(child: _buildIconButton(Icons.chat_bubble_outline, 'Cộng Đồng', () => Navigator.push(context, MaterialPageRoute(builder: (_) => CongDongScreen())), Colors.pink)),
-                    ]),
+                  children: const [
+                    Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 70,
+                    ),
+
+                    SizedBox(height: 16),
+
+                    Text(
+                      'CODEVARA',
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 3,
+                      ),
+                    ),
+
+                    SizedBox(height: 10),
+
+                    Text(
+                      'Học Code Không Cần AI',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ]),
+
+              // ===== MENU DỌC =====
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      _buildMenuCard(
+                        icon: Icons.code,
+                        title: 'Dán Code',
+                        subtitle: 'Fix lỗi • Compile • AI Chat',
+                        color: Colors.green,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CodevaraScreen(),
+                            ),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildMenuCard(
+                        icon: Icons.quiz,
+                        title: 'Quiz Game',
+                        subtitle: 'Luyện tập code bằng quiz',
+                        color: Colors.orange,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const QuizScreen(),
+                            ),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      _buildMenuCard(
+                        icon: Icons.group,
+                        title: 'Nhóm Lớp',
+                        subtitle: 'Học và chia sẻ cùng bạn bè',
+                        color: Colors.purple,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => NhomScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ===== FOOTER =====
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 20,
+                ),
+                child: Text(
+                  'Codevara AI © 2026',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // _buildIconButton() giữ nguyên code cũ
-  Widget _buildIconButton(IconData icon, String label, VoidCallback onTap, Color color) {
+  Widget _buildMenuCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 120,
+        width: double.infinity,
+
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(color: color.withOpacity(0.3), shape: BoxShape.circle),
-              child: Icon(icon, size: 40, color: Colors.white),
+          color: Colors.white.withOpacity(0.16),
+          borderRadius: BorderRadius.circular(28),
+
+          border: Border.all(
+            color: Colors.white.withOpacity(0.22),
+            width: 1.5,
+          ),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
-            SizedBox(height: 12),
-            Text(label, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
           ],
+        ),
+
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 38,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(width: 20),
+
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white70,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
